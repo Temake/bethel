@@ -24,7 +24,7 @@ export default function StreakDisplay() {
   const { streak, useFreeze } = useUserData();
 
   return (
-    <div className="bg-card rounded-xl p-6 shadow-sm border transition-all duration-300 hover:shadow-md">
+    <div className="bg-card rounded-xl p-6 shadow-sm border">
       <div className="mb-4 flex justify-between items-center">
         <h3 className="text-lg font-medium">Your Streak</h3>
         <div className="flex items-center space-x-1">
@@ -32,10 +32,7 @@ export default function StreakDisplay() {
             <TooltipProvider key={index}>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Snowflake 
-                    className="h-5 w-5 text-primary animate-pulse-gentle" 
-                    style={{ animationDelay: `${index * 0.3}s` }}
-                  />
+                  <Snowflake className="h-5 w-5 text-primary" />
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>Streak Freeze Available</p>
@@ -49,7 +46,7 @@ export default function StreakDisplay() {
       <div className="relative h-36 flex flex-col items-center justify-center mb-6">
         <div className="absolute flex justify-center items-center w-28 h-28 rounded-full overflow-hidden border-4 border-secondary">
           <div className="absolute inset-0 flex justify-center items-center">
-            <Flame className={`h-12 w-12 ${streak.current > 0 ? 'text-primary' : 'text-muted'} transition-transform duration-500 ${streak.current > 5 ? 'scale-125' : ''}`} />
+            <Flame className={`h-12 w-12 ${streak.current > 0 ? 'text-primary' : 'text-muted'}`} />
           </div>
         </div>
         <div className="absolute flex justify-center items-center w-28 h-28 pt-16">

@@ -15,28 +15,22 @@ import {
 export default function CheckInButton() {
   const { checkIn, isCheckedInToday, streak } = useUserData();
   const [showDialog, setShowDialog] = useState(false);
-  const [isAnimating, setIsAnimating] = useState(false);
 
   const handleCheckIn = () => {
-    if (isCheckedInToday || isAnimating) return;
-    
-    // Simple check-in without post-animation
-    setIsAnimating(true);
+    if (isCheckedInToday) return;
     checkIn();
-    setIsAnimating(false);
   };
 
   return (
     <>
       <Button
         onClick={() => isCheckedInToday ? setShowDialog(true) : handleCheckIn()}
-        className={`relative overflow-hidden transition-all duration-300 ${
+        className={`relative overflow-hidden transition-colors ${
           isCheckedInToday ? "bg-secondary text-muted-foreground" : "bg-primary"
         }`}
         size="lg"
-        disabled={isAnimating}
       >
-        <div className="relative z-10 flex items-center space-x-2">
+        <div className="flex items-center space-x-2">
           {isCheckedInToday ? (
             <>
               <Check className="h-5 w-5" />
