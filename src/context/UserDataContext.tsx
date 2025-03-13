@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { JournalEntry, Streak, UserData } from "@/lib/types";
 import { useAuth } from "./AuthContext";
-import { Toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 type UserDataContextType = {
   journalEntries: JournalEntry[];

@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { User } from "@/lib/types";
-import { Toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 type AuthContextType = {
   user: User | null;

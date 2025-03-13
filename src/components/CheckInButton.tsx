@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useUserData } from "@/context/UserDataContext";
@@ -18,14 +17,19 @@ export default function CheckInButton() {
   const [isAnimating, setIsAnimating] = useState(false);
 
   const handleCheckIn = () => {
-    if (isCheckedInToday) return;
+    if (isCheckedInToday || isAnimating) return;
     
     // Trigger animation
     setIsAnimating(true);
+    
+    // Delay the actual check-in to allow animation to show
     setTimeout(() => {
       checkIn();
-      setIsAnimating(false);
-    }, 1000);
+      // Keep animating for a bit longer to show completion
+      setTimeout(() => {
+        setIsAnimating(false);
+      }, 500);
+    }, 800);
   };
 
   return (
@@ -36,6 +40,7 @@ export default function CheckInButton() {
           isCheckedInToday ? "bg-secondary text-muted-foreground" : "bg-primary"
         } ${isAnimating ? "scale-110" : ""}`}
         size="lg"
+        disabled={isAnimating}
       >
         {isAnimating && (
           <div className="absolute inset-0 bg-primary animate-pulse-gentle" />
