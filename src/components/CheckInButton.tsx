@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useUserData } from "@/context/UserDataContext";
@@ -19,32 +20,22 @@ export default function CheckInButton() {
   const handleCheckIn = () => {
     if (isCheckedInToday || isAnimating) return;
     
-    // Trigger animation
+    // Simple check-in without post-animation
     setIsAnimating(true);
-    
-    // Delay the actual check-in to allow animation to show
-    setTimeout(() => {
-      checkIn();
-      // Keep animating for a bit longer to show completion
-      setTimeout(() => {
-        setIsAnimating(false);
-      }, 500);
-    }, 800);
+    checkIn();
+    setIsAnimating(false);
   };
 
   return (
     <>
       <Button
         onClick={() => isCheckedInToday ? setShowDialog(true) : handleCheckIn()}
-        className={`relative overflow-hidden transition-all duration-500 ${
+        className={`relative overflow-hidden transition-all duration-300 ${
           isCheckedInToday ? "bg-secondary text-muted-foreground" : "bg-primary"
-        } ${isAnimating ? "scale-110" : ""}`}
+        }`}
         size="lg"
         disabled={isAnimating}
       >
-        {isAnimating && (
-          <div className="absolute inset-0 bg-primary animate-pulse-gentle" />
-        )}
         <div className="relative z-10 flex items-center space-x-2">
           {isCheckedInToday ? (
             <>
