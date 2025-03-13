@@ -17,17 +17,18 @@ export default function CheckInButton() {
   const [showDialog, setShowDialog] = useState(false);
 
   const handleCheckIn = () => {
-    if (isCheckedInToday) return;
+    if (isCheckedInToday) {
+      setShowDialog(true);
+      return;
+    }
     checkIn();
   };
 
   return (
     <>
       <Button
-        onClick={() => isCheckedInToday ? setShowDialog(true) : handleCheckIn()}
-        className={`relative overflow-hidden transition-colors ${
-          isCheckedInToday ? "bg-secondary text-muted-foreground" : "bg-primary"
-        }`}
+        onClick={handleCheckIn}
+        className={isCheckedInToday ? "bg-secondary text-muted-foreground" : "bg-primary"}
         size="lg"
       >
         <div className="flex items-center space-x-2">
