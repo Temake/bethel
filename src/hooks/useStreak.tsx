@@ -1,7 +1,8 @@
 
-import { useState } from "react";
-import { Streak } from "@/lib/types";
+import { useState, useEffect } from "react";
+import { Streak, User } from "@/lib/types";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export const DEFAULT_STREAK: Streak = {
   current: 0,
@@ -13,7 +14,8 @@ export const DEFAULT_STREAK: Streak = {
 export function useStreak(initialStreak: Streak = DEFAULT_STREAK) {
   const [streak, setStreak] = useState<Streak>(initialStreak);
 
-  const checkStreakContinuity = () => {
+  const checkStreakContinuity = async (userId?: string) => {
+    if (!userId) return;
     if (!streak.lastCheckIn) return;
 
     const lastCheckInDate = new Date(streak.lastCheckIn);
@@ -27,16 +29,34 @@ export function useStreak(initialStreak: Streak = DEFAULT_STREAK) {
     
     // If last check-in was before yesterday and no freeze was used
     if (formattedLastCheckIn < formattedYesterday) {
-      setStreak(prev => ({
-        ...prev,
-        current: 0, // Reset current streak
-        lastCheckIn: null
-      }));
-      toast.error("Your streak was reset because you missed a day.");
+      try {
+        const { error } = await supabase
+          .from('streak_data')
+          .update({
+            current_streak: 0,
+            last_check_in: null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', userId);
+        
+        if (error) throw error;
+        
+        setStreak(prev => ({
+          ...prev,
+          current: 0,
+          lastCheckIn: null
+        }));
+        
+        toast.error("Your streak was reset because you missed a day.");
+      } catch (error) {
+        console.error("Error updating streak continuity:", error);
+      }
     }
   };
 
-  const incrementStreak = () => {
+  const incrementStreak = async (userId?: string) => {
+    if (!userId) return false;
+    
     const today = new Date().toISOString().split('T')[0];
     
     // Only increment if not already checked in today
@@ -44,36 +64,68 @@ export function useStreak(initialStreak: Streak = DEFAULT_STREAK) {
       return false;
     }
     
-    setStreak(prev => {
-      const newCurrent = prev.current + 1;
-      return {
+    try {
+      const newCurrent = streak.current + 1;
+      const newLongest = Math.max(streak.longest, newCurrent);
+      
+      const { error } = await supabase
+        .from('streak_data')
+        .update({
+          current_streak: newCurrent,
+          longest_streak: newLongest,
+          last_check_in: today,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userId);
+      
+      if (error) throw error;
+      
+      setStreak(prev => ({
         ...prev,
         current: newCurrent,
-        longest: Math.max(prev.longest, newCurrent),
+        longest: newLongest,
         lastCheckIn: today
-      };
-    });
-    
-    return true;
+      }));
+      
+      return true;
+    } catch (error) {
+      console.error("Error incrementing streak:", error);
+      return false;
+    }
   };
 
-  const useFreeze = () => {
+  const useFreeze = async (userId?: string) => {
+    if (!userId) return false;
     if (streak.freezesAvailable <= 0) {
       toast.error("No freezes available!");
       return false;
     }
     
-    // Use a freeze to maintain streak despite missing a day
-    const today = new Date().toISOString().split('T')[0];
-    
-    setStreak(prev => ({
-      ...prev,
-      freezesAvailable: prev.freezesAvailable - 1,
-      lastCheckIn: today
-    }));
-    
-    toast.success(`Freeze used! Streak preserved. ${streak.freezesAvailable - 1} freeze${streak.freezesAvailable - 1 !== 1 ? 's' : ''} remaining.`);
-    return true;
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      const { error } = await supabase
+        .from('streak_data')
+        .update({
+          last_check_in: today,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userId);
+      
+      if (error) throw error;
+      
+      setStreak(prev => ({
+        ...prev,
+        freezesAvailable: prev.freezesAvailable - 1,
+        lastCheckIn: today
+      }));
+      
+      toast.success(`Freeze used! Streak preserved. ${streak.freezesAvailable - 1} freeze${streak.freezesAvailable - 1 !== 1 ? 's' : ''} remaining.`);
+      return true;
+    } catch (error) {
+      console.error("Error using freeze:", error);
+      return false;
+    }
   };
 
   return {

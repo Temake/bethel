@@ -1,7 +1,7 @@
-
 import { UserData } from "@/lib/types";
 
 export const saveUserData = (userData: UserData) => {
+  // Keep local storage as a backup/offline cache
   localStorage.setItem("userData", JSON.stringify(userData));
 };
 

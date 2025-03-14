@@ -5,7 +5,7 @@ import { useAuth } from "./AuthContext";
 import { useJournalEntries } from "@/hooks/useJournalEntries";
 import { useStreak, DEFAULT_STREAK } from "@/hooks/useStreak";
 import { useCheckIn } from "@/hooks/useCheckIn";
-import { loadUserData, saveUserData } from "@/utils/localStorage";
+import { supabase } from "@/integrations/supabase/client";
 
 type UserDataContextType = {
   journalEntries: JournalEntry[];
@@ -25,7 +25,7 @@ export const UserDataProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const { user } = useAuth();
   
-  // Initialize hooks with empty values - we'll populate from localStorage in useEffect
+  // Initialize hooks with empty values - we'll populate from Supabase in useEffect
   const { 
     journalEntries, 
     setJournalEntries, 
@@ -48,31 +48,46 @@ export const UserDataProvider: React.FC<{ children: React.ReactNode }> = ({
     checkIn 
   } = useCheckIn(journalEntries, setJournalEntries, streak, incrementStreak, user?.id);
 
-  // Load user data from localStorage
+  // Load user streak data from Supabase
   useEffect(() => {
-    if (user) {
-      const userData = loadUserData();
-      if (userData) {
-        setJournalEntries(userData.journalEntries || []);
-        setStreak(userData.streak || DEFAULT_STREAK);
-      }
+    const fetchStreakData = async () => {
+      if (!user) return;
       
-      checkIsCheckedInToday();
-      checkStreakContinuity();
-    }
-  }, [user]);
-
-  // Save user data to localStorage whenever it changes
+      try {
+        const { data, error } = await supabase
+          .from('streak_data')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (error) {
+          console.error("Error fetching streak data:", error);
+          return;
+        }
+        
+        if (data) {
+          setStreak({
+            current: data.current_streak,
+            longest: data.longest_streak,
+            lastCheckIn: data.last_check_in,
+            freezesAvailable: 3 // This value is not stored in the database yet
+          });
+        }
+      } catch (error) {
+        console.error("Error in fetchStreakData:", error);
+      }
+    };
+    
+    fetchStreakData();
+  }, [user, setStreak]);
+  
+  // Check streak continuity and check-in status
   useEffect(() => {
     if (user) {
-      const userData: UserData = {
-        user,
-        journalEntries,
-        streak
-      };
-      saveUserData(userData);
+      checkIsCheckedInToday();
+      checkStreakContinuity(user.id);
     }
-  }, [user, journalEntries, streak]);
+  }, [user, checkIsCheckedInToday, checkStreakContinuity]);
 
   // Wrapper for add journal entry that handles check-in
   const addJournalEntry = (prayedFor: string, receivedInsight: string) => {
@@ -84,6 +99,13 @@ export const UserDataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  // Wrapper for useFreeze to pass user ID
+  const handleUseFreeze = () => {
+    if (user) {
+      useFreeze(user.id);
+    }
+  };
+
   return (
     <UserDataContext.Provider
       value={{
@@ -91,7 +113,7 @@ export const UserDataProvider: React.FC<{ children: React.ReactNode }> = ({
         streak,
         isCheckedInToday,
         checkIn,
-        useFreeze,
+        useFreeze: handleUseFreeze,
         addJournalEntry,
         updateJournalEntry,
         getTodayEntry

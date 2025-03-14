@@ -27,3 +27,37 @@ export type UserData = {
   journalEntries: JournalEntry[];
   streak: Streak;
 };
+
+// Supabase Database Types
+export type ProfilesRow = {
+  id: string;
+  name: string | null;
+  created_at: string;
+};
+
+export type CheckInsRow = {
+  id: string;
+  user_id: string;
+  check_in_date: string;
+  created_at: string;
+};
+
+export type JournalEntriesRow = {
+  id: string;
+  user_id: string;
+  prayed_for: string | null;
+  received_insight: string | null;
+  entry_date: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type StreakDataRow = {
+  id: string;
+  user_id: string;
+  current_streak: number;
+  longest_streak: number;
+  last_check_in: string | null;
+  created_at: string;
+  updated_at: string;
+};

@@ -1,57 +1,156 @@
 
-import { useState } from "react";
-import { JournalEntry, User } from "@/lib/types";
+import { useState, useEffect } from "react";
+import { JournalEntry, User, JournalEntriesRow } from "@/lib/types";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export function useJournalEntries(initialEntries: JournalEntry[] = [], user: User | null) {
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>(initialEntries);
 
-  const addJournalEntry = (prayedFor: string, receivedInsight: string) => {
+  // Fetch journal entries from Supabase when user changes
+  useEffect(() => {
+    const fetchJournalEntries = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('journal_entries')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('entry_date', { ascending: false });
+        
+        if (error) throw error;
+        
+        if (data) {
+          // Map Supabase journal entries to app format
+          const mappedEntries: JournalEntry[] = data.map((entry: JournalEntriesRow) => ({
+            id: entry.id,
+            userId: entry.user_id,
+            date: entry.entry_date,
+            prayedFor: entry.prayed_for || '',
+            receivedInsight: entry.received_insight || '',
+            createdAt: entry.created_at,
+            isCheckedIn: true // If there's a journal entry, user is checked in for that day
+          }));
+          
+          setJournalEntries(mappedEntries);
+        }
+      } catch (error) {
+        console.error("Error fetching journal entries:", error);
+      }
+    };
+    
+    fetchJournalEntries();
+  }, [user]);
+
+  const addJournalEntry = async (prayedFor: string, receivedInsight: string) => {
+    if (!user) return;
+    
     const today = new Date().toISOString().split('T')[0];
     const existingEntry = journalEntries.find(entry => entry.date === today);
     
-    if (existingEntry) {
-      // Update existing entry
+    try {
+      if (existingEntry) {
+        // Update existing entry
+        const { error } = await supabase
+          .from('journal_entries')
+          .update({
+            prayed_for: prayedFor,
+            received_insight: receivedInsight,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingEntry.id);
+        
+        if (error) throw error;
+        
+        setJournalEntries(prev => 
+          prev.map(entry => 
+            entry.id === existingEntry.id 
+              ? { 
+                  ...entry, 
+                  prayedFor, 
+                  receivedInsight,
+                  isCheckedIn: true
+                } 
+              : entry
+          )
+        );
+      } else {
+        // Create new entry
+        const { data, error } = await supabase
+          .from('journal_entries')
+          .insert({
+            user_id: user.id,
+            entry_date: today,
+            prayed_for: prayedFor,
+            received_insight: receivedInsight
+          })
+          .select()
+          .single();
+        
+        if (error) throw error;
+        
+        if (data) {
+          const newEntry: JournalEntry = {
+            id: data.id,
+            userId: data.user_id,
+            date: data.entry_date,
+            prayedFor: data.prayed_for || '',
+            receivedInsight: data.received_insight || '',
+            createdAt: data.created_at,
+            isCheckedIn: true
+          };
+          
+          setJournalEntries(prev => [...prev, newEntry]);
+        }
+      }
+      
+      // Ensure check-in record exists for today
+      await supabase
+        .from('check_ins')
+        .upsert({
+          user_id: user.id,
+          check_in_date: today
+        }, { 
+          onConflict: 'user_id,check_in_date' 
+        });
+      
+      toast.success("Journal entry saved!");
+    } catch (error: any) {
+      console.error("Error saving journal entry:", error);
+      toast.error(error.message || "Failed to save journal entry.");
+    }
+  };
+
+  const updateJournalEntry = async (id: string, prayedFor: string, receivedInsight: string) => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('journal_entries')
+        .update({
+          prayed_for: prayedFor,
+          received_insight: receivedInsight,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
+      
       setJournalEntries(prev => 
         prev.map(entry => 
-          entry.date === today 
-            ? { 
-                ...entry, 
-                prayedFor, 
-                receivedInsight,
-                isCheckedIn: true // Ensure check-in with journal entry
-              } 
+          entry.id === id 
+            ? { ...entry, prayedFor, receivedInsight } 
             : entry
         )
       );
-    } else {
-      // Create new entry
-      const newEntry: JournalEntry = {
-        id: `${Date.now()}`,
-        userId: user?.id || "",
-        date: today,
-        prayedFor,
-        receivedInsight,
-        createdAt: new Date().toISOString(),
-        isCheckedIn: true // Ensure check-in with journal entry
-      };
       
-      setJournalEntries(prev => [...prev, newEntry]);
+      toast.success("Journal entry updated!");
+    } catch (error: any) {
+      console.error("Error updating journal entry:", error);
+      toast.error(error.message || "Failed to update journal entry.");
     }
-    
-    toast.success("Journal entry saved!");
-  };
-
-  const updateJournalEntry = (id: string, prayedFor: string, receivedInsight: string) => {
-    setJournalEntries(prev => 
-      prev.map(entry => 
-        entry.id === id 
-          ? { ...entry, prayedFor, receivedInsight } 
-          : entry
-      )
-    );
-    
-    toast.success("Journal entry updated!");
   };
 
   const getTodayEntry = () => {
