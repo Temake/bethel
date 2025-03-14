@@ -42,17 +42,17 @@ export const UserDataProvider: React.FC<{ children: React.ReactNode }> = ({
         setStreak(parsedData.streak || DEFAULT_STREAK);
       }
       
-      // Check if the user has already checked in today
-      const today = new Date().toISOString().split('T')[0];
-      const checkedInToday = journalEntries.some(
-        entry => entry.date === today && entry.isCheckedIn
-      );
-      setIsCheckedInToday(checkedInToday);
-      
-      // Check if streak should be reset (missed a day without freeze)
+      checkIsCheckedInToday();
       checkStreakContinuity();
     }
-  }, [user, journalEntries.length]);
+  }, [user]);
+
+  // Check if already checked in today whenever data changes
+  useEffect(() => {
+    if (user) {
+      checkIsCheckedInToday();
+    }
+  }, [journalEntries]);
 
   // Save user data to localStorage whenever it changes
   useEffect(() => {
@@ -65,6 +65,14 @@ export const UserDataProvider: React.FC<{ children: React.ReactNode }> = ({
       localStorage.setItem("userData", JSON.stringify(userData));
     }
   }, [user, journalEntries, streak]);
+
+  const checkIsCheckedInToday = () => {
+    const today = new Date().toISOString().split('T')[0];
+    const checkedInToday = journalEntries.some(
+      entry => entry.date === today && entry.isCheckedIn
+    );
+    setIsCheckedInToday(checkedInToday);
+  };
 
   const checkStreakContinuity = () => {
     if (!streak.lastCheckIn) return;
@@ -98,8 +106,17 @@ export const UserDataProvider: React.FC<{ children: React.ReactNode }> = ({
       return;
     }
 
+    // Check if the last check-in was today
+    if (streak.lastCheckIn === today) {
+      setIsCheckedInToday(true);
+      toast.info("You've already checked in today!");
+      return;
+    }
+
     // Update streak
     const newStreak = { ...streak };
+    
+    // Only increment streak if not already checked in today
     newStreak.current += 1;
     newStreak.longest = Math.max(newStreak.longest, newStreak.current);
     newStreak.lastCheckIn = today;
