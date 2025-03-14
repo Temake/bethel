@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { 
   Book, 
   Home, 
@@ -41,7 +42,7 @@ const Navbar = () => {
       <div className="container px-4 py-3 flex items-center justify-between">
         <Link to="/" className="flex items-center space-x-2 transition-all duration-300 hover:opacity-80">
           <div className="font-display text-xl font-semibold flex items-center">
-            <span className="bg-primary text-primary-foreground py-1 px-2 rounded mr-1">Soul</span>
+            <span className="bg-primary text-primary-foreground py-1 px-2 rounded mr-1">Bethel</span>
             <span>Tracker</span>
           </div>
         </Link>
@@ -61,6 +62,10 @@ const Navbar = () => {
               {link.name}
             </Link>
           ))}
+
+          <div className="ml-2">
+            <ThemeToggle />
+          </div>
 
           {isAuthenticated ? (
             <Button
@@ -85,7 +90,9 @@ const Navbar = () => {
         </nav>
 
         {/* Mobile navigation */}
-        <div className="flex md:hidden">
+        <div className="flex md:hidden items-center gap-2">
+          <ThemeToggle />
+          
           <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon">
@@ -95,7 +102,7 @@ const Navbar = () => {
             </SheetTrigger>
             <SheetContent className="flex flex-col">
               <div className="flex items-center justify-between mb-6">
-                <div className="font-display text-xl font-semibold">Soul Tracker</div>
+                <div className="font-display text-xl font-semibold">Bethel Tracker</div>
                 <SheetClose asChild>
                   <Button variant="ghost" size="icon">
                     <X className="h-5 w-5" />

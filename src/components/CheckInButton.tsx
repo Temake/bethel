@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useUserData } from "@/context/UserDataContext";
-import { Flame, Check, Calendar } from "lucide-react";
+import { Leaf, Check, Calendar } from "lucide-react";
 import { 
   Dialog, 
   DialogContent, 
@@ -39,7 +39,7 @@ export default function CheckInButton() {
             </>
           ) : (
             <>
-              <Flame className="h-5 w-5" />
+              <Leaf className="h-5 w-5" />
               <span>Mark Presence</span>
             </>
           )}

@@ -1,4 +1,3 @@
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
 @import url('https://rsms.me/inter/inter.css');
 
@@ -17,16 +16,16 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 12%;
 
-    --primary: 210 100% 50%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 142 76% 36%;
+    --primary-foreground: 355 100% 100%;
 
-    --secondary: 210 30% 96%;
+    --secondary: 140 30% 96%;
     --secondary-foreground: 222 47% 12%;
 
-    --muted: 210 40% 96%;
+    --muted: 140 40% 96%;
     --muted-foreground: 215 16% 47%;
 
-    --accent: 210 40% 96%;
+    --accent: 140 40% 96%;
     --accent-foreground: 222 47% 12%;
 
     --destructive: 0 84% 60%;
@@ -34,7 +33,7 @@
 
     --border: 214.3 32% 91%;
     --input: 214.3 32% 91%;
-    --ring: 222 47% 12%;
+    --ring: 142 76% 36%;
 
     --radius: 0.75rem;
 
@@ -45,7 +44,7 @@
     --sidebar-accent: 240 5% 96%;
     --sidebar-accent-foreground: 240 6% 10%;
     --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-ring: 142 76% 36%;
   }
 
   .dark {
@@ -58,7 +57,7 @@
     --popover: 222 47% 12%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 210 100% 50%;
+    --primary: 142 70% 50%;
     --primary-foreground: 222 47% 12%;
 
     --secondary: 217 33% 18%;
@@ -75,16 +74,16 @@
 
     --border: 217 33% 18%;
     --input: 217 33% 18%;
-    --ring: 213 27% 84%;
+    --ring: 142 70% 50%;
 
     --sidebar-background: 240 6% 10%;
     --sidebar-foreground: 240 5% 96%;
-    --sidebar-primary: 224 76% 48%;
+    --sidebar-primary: 142 70% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 240 4% 16%;
     --sidebar-accent-foreground: 240 5% 96%;
     --sidebar-border: 240 4% 16%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-ring: 142 70% 48%;
   }
 }
 
