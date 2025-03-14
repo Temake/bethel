@@ -59,7 +59,8 @@ export function useJournalEntries(initialEntries: JournalEntry[] = [], user: Use
             received_insight: receivedInsight,
             updated_at: new Date().toISOString()
           })
-          .eq('id', existingEntry.id);
+          .eq('id', existingEntry.id)
+          .eq('user_id', user.id);
         
         if (error) throw error;
         

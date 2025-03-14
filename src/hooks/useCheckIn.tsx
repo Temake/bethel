@@ -25,14 +25,14 @@ export function useCheckIn(
           .from('check_ins')
           .select('*')
           .eq('user_id', userId)
-          .eq('check_in_date', today)
-          .single();
+          .eq('check_in_date', today);
         
-        if (error && error.code !== 'PGRST116') { // PGRST116 is "No rows returned" error
+        if (error) {
           console.error("Error checking for today's check-in:", error);
+          return;
         }
         
-        setIsCheckedInToday(!!data);
+        setIsCheckedInToday(data && data.length > 0);
       } catch (error) {
         console.error("Error in checkDbForTodayCheckIn:", error);
       }
@@ -51,14 +51,14 @@ export function useCheckIn(
         .from('check_ins')
         .select('*')
         .eq('user_id', userId)
-        .eq('check_in_date', today)
-        .single();
+        .eq('check_in_date', today);
       
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         console.error("Error checking for today's check-in:", error);
+        return;
       }
       
-      setIsCheckedInToday(!!data);
+      setIsCheckedInToday(data && data.length > 0);
     } catch (error) {
       console.error("Error in checkIsCheckedInToday:", error);
     }

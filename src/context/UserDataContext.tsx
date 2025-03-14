@@ -58,9 +58,9 @@ export const UserDataProvider: React.FC<{ children: React.ReactNode }> = ({
           .from('streak_data')
           .select('*')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
         
-        if (error) {
+        if (error && error.code !== 'PGRST116') {
           console.error("Error fetching streak data:", error);
           return;
         }
@@ -72,6 +72,19 @@ export const UserDataProvider: React.FC<{ children: React.ReactNode }> = ({
             lastCheckIn: data.last_check_in,
             freezesAvailable: 3 // This value is not stored in the database yet
           });
+        } else {
+          // If no streak data exists yet, create it
+          const { error: insertError } = await supabase
+            .from('streak_data')
+            .insert({
+              user_id: user.id,
+              current_streak: 0,
+              longest_streak: 0
+            });
+            
+          if (insertError) {
+            console.error("Error creating initial streak data:", insertError);
+          }
         }
       } catch (error) {
         console.error("Error in fetchStreakData:", error);
