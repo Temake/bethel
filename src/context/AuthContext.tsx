@@ -141,23 +141,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setError(null);
     
     try {
-      // First check if email already exists - we need to check auth users instead of profiles
-      const { data: { users }, error: usersError } = await supabase.auth.admin.listUsers({
-        filter: {
-          email: email
+      // Check if email already exists by attempting to sign in
+      const { data: emailCheck, error: emailCheckError } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: false,
         }
       });
       
-      if (usersError) {
-        throw usersError;
-      }
-      
-      // If email already exists in users, prevent sign up
-      if (users && users.length > 0) {
+      // If no error occurred during the email check, the email might exist
+      if (!emailCheckError || (emailCheckError.message && emailCheckError.message.includes('Email not confirmed'))) {
         throw new Error("This email is already registered. Please log in instead.");
       }
       
-      // Proceed with signup if email is new
+      // Proceed with signup if email check passed
       const { data, error } = await supabase.auth.signUp({
         email,
         password,

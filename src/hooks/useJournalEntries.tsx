@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { JournalEntry, User, JournalEntriesRow } from "@/lib/types";
+import { JournalEntry, User } from "@/lib/types";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -23,7 +23,7 @@ export function useJournalEntries(initialEntries: JournalEntry[] = [], user: Use
         
         if (data) {
           // Map Supabase journal entries to app format
-          const mappedEntries: JournalEntry[] = data.map((entry: JournalEntriesRow) => ({
+          const mappedEntries: JournalEntry[] = data.map((entry: any) => ({
             id: entry.id,
             userId: entry.user_id,
             date: entry.entry_date,
@@ -59,8 +59,7 @@ export function useJournalEntries(initialEntries: JournalEntry[] = [], user: Use
             received_insight: receivedInsight,
             updated_at: new Date().toISOString()
           })
-          .eq('id', existingEntry.id)
-          .eq('user_id', user.id);
+          .eq('id', existingEntry.id);
         
         if (error) throw error;
         
@@ -86,7 +85,7 @@ export function useJournalEntries(initialEntries: JournalEntry[] = [], user: Use
             prayed_for: prayedFor,
             received_insight: receivedInsight
           })
-          .select()
+          .select('*')
           .single();
         
         if (error) throw error;
@@ -107,7 +106,7 @@ export function useJournalEntries(initialEntries: JournalEntry[] = [], user: Use
       }
       
       // Ensure check-in record exists for today
-      await supabase
+      const { error: checkInError } = await supabase
         .from('check_ins')
         .upsert({
           user_id: user.id,
@@ -115,6 +114,10 @@ export function useJournalEntries(initialEntries: JournalEntry[] = [], user: Use
         }, { 
           onConflict: 'user_id,check_in_date' 
         });
+      
+      if (checkInError) {
+        console.error("Error ensuring check-in record:", checkInError);
+      }
       
       toast.success("Journal entry saved!");
     } catch (error: any) {
@@ -134,8 +137,7 @@ export function useJournalEntries(initialEntries: JournalEntry[] = [], user: Use
           received_insight: receivedInsight,
           updated_at: new Date().toISOString()
         })
-        .eq('id', id)
-        .eq('user_id', user.id);
+        .eq('id', id);
       
       if (error) throw error;
       
