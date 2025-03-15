@@ -141,19 +141,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setError(null);
     
     try {
-      // First check if email already exists
-      const { data: existingUsers, error: fetchError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', email)
-        .maybeSingle();
+      // First check if email already exists - we need to check auth users instead of profiles
+      const { data: { users }, error: usersError } = await supabase.auth.admin.listUsers({
+        filter: {
+          email: email
+        }
+      });
       
-      if (fetchError && fetchError.code !== 'PGRST116') {
-        throw fetchError;
+      if (usersError) {
+        throw usersError;
       }
       
-      // If email already exists in database, prevent sign up
-      if (existingUsers) {
+      // If email already exists in users, prevent sign up
+      if (users && users.length > 0) {
         throw new Error("This email is already registered. Please log in instead.");
       }
       
