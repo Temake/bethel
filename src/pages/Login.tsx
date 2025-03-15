@@ -17,7 +17,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogIn, UserPlus } from "lucide-react";
+import { LogIn, UserPlus, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -38,8 +39,9 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 type SignupFormValues = z.infer<typeof signupSchema>;
 
 export default function Login() {
-  const { login, signup, isAuthenticated } = useAuth();
+  const { login, signup, isAuthenticated, error } = useAuth();
   const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
+  const [showConfirmationMessage, setShowConfirmationMessage] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -62,10 +64,16 @@ export default function Login() {
   });
 
   useEffect(() => {
-    // Check if URL has signup parameter
+    // Check if URL has signup parameter or email confirmation hash
     const params = new URLSearchParams(location.search);
     if (params.get("signup") === "true") {
       setActiveTab("signup");
+    }
+    
+    // Check for email confirmation in URL
+    if (location.hash.includes('type=signup') || location.hash.includes('type=recovery')) {
+      setShowConfirmationMessage(true);
+      setActiveTab("login");
     }
   }, [location]);
 
@@ -82,6 +90,8 @@ export default function Login() {
 
   const onSignupSubmit = async (data: SignupFormValues) => {
     await signup(data.name, data.email, data.password);
+    setShowConfirmationMessage(true);
+    setActiveTab("login");
   };
 
   return (
@@ -91,13 +101,29 @@ export default function Login() {
       <Card className="w-full max-w-md mx-auto rounded-xl shadow-lg animate-scale-in border">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-semibold tracking-tight text-center">
-            Welcome to Soul Tracker
+            Welcome to Bethel
           </CardTitle>
           <CardDescription className="text-center">
             Track your spiritual journey and maintain consistency
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {showConfirmationMessage && (
+            <Alert className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Please check your email for a confirmation link. You'll need to confirm your email before you can log in.
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {error && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          
           <Tabs defaultValue={activeTab} value={activeTab} onValueChange={(value) => setActiveTab(value as "login" | "signup")}>
             <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="login">Sign In</TabsTrigger>
