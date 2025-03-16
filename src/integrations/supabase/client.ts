@@ -10,7 +10,7 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 const getRedirectURL = () => {
   // In production, use the current origin
   // In development, use localhost:5173 (or your dev server)
-  return 'localhost:8001' + '/login';
+  return window.location.origin + '/login';
 };
 
 // Import the supabase client like this:
@@ -25,6 +25,7 @@ export const supabase = createClient<Database>(
       autoRefreshToken: true,
       detectSessionInUrl: true,
       flowType: 'pkce',
+      // Use the correct property name for Auth redirection
       redirectTo: getRedirectURL()
     }
   }

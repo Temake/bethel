@@ -149,8 +149,8 @@ export function useAuthProvider(): AuthContextType {
                          existingProfile;
       
       if (userExists) {
-        // Only set the error message, don't show a toast - the error will be displayed in the UI
         setError("This email is already registered. Please log in instead.");
+        toast.error("This email is already registered. Please log in instead.");
         navigate('/login?email-exists=true');
         return null;
       }
