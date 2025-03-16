@@ -1,12 +1,25 @@
 
-import { useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { User } from "@/lib/types";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { AuthContextType } from "./types";
 
-export function useAuthProvider(): AuthContextType {
+type AuthContextType = {
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  error: string | null;
+  login: (email: string, password: string) => Promise<void>;
+  signup: (name: string, email: string, password: string) => Promise<void>;
+  logout: () => void;
+};
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children
+}) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -128,34 +141,20 @@ export function useAuthProvider(): AuthContextType {
     setError(null);
     
     try {
-      // First, check if the email already exists using profiles table
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', email)
-        .maybeSingle();
-      
-      // Also check auth.users using a sign-in attempt (this is more reliable)
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      // Check if email already exists by attempting to sign in
+      const { data: emailCheck, error: emailCheckError } = await supabase.auth.signInWithOtp({
         email,
-        password: 'check-if-exists-only' // We're just checking if the email exists
+        options: {
+          shouldCreateUser: false,
+        }
       });
       
-      // If no error occurred during the sign-in attempt with random password, 
-      // or if we got a specific error about wrong credentials (means user exists)
-      // or if we found a user in the profiles table
-      const userExists = !signInError || 
-                         (signInError.message && signInError.message.includes('Invalid login credentials')) ||
-                         existingProfile;
-      
-      if (userExists) {
-        // Only set the error message, don't show a toast - the error will be displayed in the UI
-        setError("This email is already registered. Please log in instead.");
-        navigate('/login?email-exists=true');
-        return null;
+      // If no error occurred during the email check, the email might exist
+      if (!emailCheckError || (emailCheckError.message && emailCheckError.message.includes('Email not confirmed'))) {
+        throw new Error("This email is already registered. Please log in instead.");
       }
       
-      // If email doesn't exist, proceed with signup
+      // Proceed with signup if email check passed
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -173,15 +172,11 @@ export function useAuthProvider(): AuthContextType {
       
       if (data.user) {
         toast.success("Account created! Please check your email for verification.");
-        return { isNewAccount: true };
       }
-      
-      return null;
     } catch (err: any) {
       console.error('Signup error:', err);
       setError(err.message);
       toast.error(err.message || "Failed to create account");
-      return null;
     } finally {
       setIsLoading(false);
     }
@@ -207,13 +202,27 @@ export function useAuthProvider(): AuthContextType {
     }
   };
 
-  return {
-    isAuthenticated,
-    user,
-    isLoading,
-    error,
-    login,
-    signup,
-    logout
-  };
-}
+  return (
+    <AuthContext.Provider
+      value={{
+        isAuthenticated,
+        user,
+        isLoading,
+        error,
+        login,
+        signup,
+        logout
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+};

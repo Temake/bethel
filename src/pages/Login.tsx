@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "@/context/auth";
+import { useAuth } from "@/context/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoginForm, LoginFormValues } from "@/components/auth/LoginForm";
@@ -12,7 +12,6 @@ export default function Login() {
   const { login, signup, isAuthenticated, error } = useAuth();
   const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
   const [showConfirmationMessage, setShowConfirmationMessage] = useState(false);
-  const [confirmationMessage, setConfirmationMessage] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -26,14 +25,6 @@ export default function Login() {
     // Check for email confirmation in URL
     if (location.hash.includes('type=signup') || location.hash.includes('type=recovery')) {
       setShowConfirmationMessage(true);
-      setConfirmationMessage("Please check your email for a confirmation link. You'll need to confirm your email before you can log in.");
-      setActiveTab("login");
-    }
-    
-    // Check for email-exists parameter
-    if (params.get("email-exists") === "true") {
-      setShowConfirmationMessage(true);
-      setConfirmationMessage("This email is already registered. Please log in instead.");
       setActiveTab("login");
     }
   }, [location]);
@@ -50,14 +41,9 @@ export default function Login() {
   };
 
   const onSignupSubmit = async (data: SignupFormValues) => {
-    const result = await signup(data.name, data.email, data.password);
-    
-    // Only show confirmation message for new accounts
-    if (result && result.isNewAccount) {
-      setShowConfirmationMessage(true);
-      setConfirmationMessage("Please check your email for a confirmation link. You'll need to confirm your email before you can log in.");
-      setActiveTab("login");
-    }
+    await signup(data.name, data.email, data.password);
+    setShowConfirmationMessage(true);
+    setActiveTab("login");
   };
 
   return (
@@ -74,9 +60,9 @@ export default function Login() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {showConfirmationMessage && confirmationMessage && (
+          {showConfirmationMessage && (
             <AuthAlert 
-              message={confirmationMessage}
+              message="Please check your email for a confirmation link. You'll need to confirm your email before you can log in."
             />
           )}
           
