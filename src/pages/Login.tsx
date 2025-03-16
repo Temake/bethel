@@ -12,6 +12,7 @@ export default function Login() {
   const { login, signup, isAuthenticated, error } = useAuth();
   const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
   const [showConfirmationMessage, setShowConfirmationMessage] = useState(false);
+  const [confirmationMessage, setConfirmationMessage] = useState("Please check your email for a confirmation link. You'll need to confirm your email before you can log in.");
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -25,6 +26,13 @@ export default function Login() {
     // Check for email confirmation in URL
     if (location.hash.includes('type=signup') || location.hash.includes('type=recovery')) {
       setShowConfirmationMessage(true);
+      setActiveTab("login");
+    }
+    
+    // Check for email-exists parameter
+    if (params.get("email-exists") === "true") {
+      setShowConfirmationMessage(true);
+      setConfirmationMessage("This email is already registered. Please log in instead.");
       setActiveTab("login");
     }
   }, [location]);
@@ -43,6 +51,7 @@ export default function Login() {
   const onSignupSubmit = async (data: SignupFormValues) => {
     await signup(data.name, data.email, data.password);
     setShowConfirmationMessage(true);
+    setConfirmationMessage("Please check your email for a confirmation link. You'll need to confirm your email before you can log in.");
     setActiveTab("login");
   };
 
@@ -62,7 +71,7 @@ export default function Login() {
         <CardContent>
           {showConfirmationMessage && (
             <AuthAlert 
-              message="Please check your email for a confirmation link. You'll need to confirm your email before you can log in."
+              message={confirmationMessage}
             />
           )}
           

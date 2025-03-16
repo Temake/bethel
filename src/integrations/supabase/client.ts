@@ -25,8 +25,8 @@ export const supabase = createClient<Database>(
       autoRefreshToken: true,
       detectSessionInUrl: true,
       flowType: 'pkce',
-      // Use the appropriate property for redirection in the Auth config
-      redirectTo: getRedirectURL()
+      // Use the property for redirection in the Auth config
+      redirect_to: getRedirectURL()
     }
   }
 );

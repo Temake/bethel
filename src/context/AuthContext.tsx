@@ -141,20 +141,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setError(null);
     
     try {
-      // Check if email already exists by attempting to sign in
-      const { data: emailCheck, error: emailCheckError } = await supabase.auth.signInWithOtp({
+      // First, check if the email already exists
+      const { data: existingUser, error: existingUserError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+      
+      // Also check auth.users using a sign-in attempt (this is more reliable)
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
-        options: {
-          shouldCreateUser: false,
-        }
+        password: 'check-if-exists-only' // We're just checking if the email exists
       });
       
-      // If no error occurred during the email check, the email might exist
-      if (!emailCheckError || (emailCheckError.message && emailCheckError.message.includes('Email not confirmed'))) {
-        throw new Error("This email is already registered. Please log in instead.");
+      // If no error occurred during the sign-in attempt with random password, 
+      // or if we got a specific error about wrong credentials (means user exists)
+      // or if we found a user in the profiles table
+      const userExists = !signInError || 
+                         (signInError.message && signInError.message.includes('Invalid login credentials')) ||
+                         existingUser;
+      
+      if (userExists) {
+        setError("This email is already registered. Please log in instead.");
+        toast.error("This email is already registered. Please log in instead.");
+        navigate('/login'); // Redirect to login page
+        return;
       }
       
-      // Proceed with signup if email check passed
+      // If email doesn't exist, proceed with signup
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -172,6 +186,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       
       if (data.user) {
         toast.success("Account created! Please check your email for verification.");
+        navigate('/login');
       }
     } catch (err: any) {
       console.error('Signup error:', err);
