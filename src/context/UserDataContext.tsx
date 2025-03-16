@@ -74,15 +74,15 @@ export const UserDataProvider: React.FC<{ children: React.ReactNode }> = ({
           });
         } else {
           // If no streak data exists yet, create it
-          const { error: insertError } = await supabase
-            .from('streak_data')
-            .insert({
-              user_id: user.id,
-              current_streak: 0,
-              longest_streak: 0
-            });
-            
-          if (insertError) {
+          try {
+            await supabase
+              .from('streak_data')
+              .insert({
+                user_id: user.id,
+                current_streak: 0,
+                longest_streak: 0
+              });
+          } catch (insertError) {
             console.error("Error creating initial streak data:", insertError);
           }
         }

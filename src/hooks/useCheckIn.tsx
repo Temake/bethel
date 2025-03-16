@@ -109,7 +109,7 @@ export function useCheckIn(
             prayed_for: '',
             received_insight: ''
           })
-          .select()
+          .select('*')
           .single();
         
         if (error) throw error;

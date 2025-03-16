@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { User } from "@/lib/types";
@@ -63,8 +64,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     
     checkSession();
     
+    // Check if the current URL has a confirmation hash for email verification
+    const handleEmailConfirmation = async () => {
+      if (window.location.hash.includes('#access_token')) {
+        // Handle the redirect from email confirmation
+        const { data, error } = await supabase.auth.getUser();
+        if (data?.user) {
+          toast.success("Email confirmed successfully! Please log in.");
+          navigate('/login');
+        }
+        if (error) {
+          toast.error("Failed to confirm email. Please try again.");
+        }
+      }
+    };
+    
+    handleEmailConfirmation();
+    
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log("Auth state change event:", event);
+        
         if (session) {
           const { 
             user: { id, email, user_metadata }
@@ -87,7 +107,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, []);
+  }, [navigate]);
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
@@ -121,13 +141,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setError(null);
     
     try {
+      // Check if email already exists by attempting to sign in
+      const { data: emailCheck, error: emailCheckError } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: false,
+        }
+      });
+      
+      // If no error occurred during the email check, the email might exist
+      if (!emailCheckError || (emailCheckError.message && emailCheckError.message.includes('Email not confirmed'))) {
+        throw new Error("This email is already registered. Please log in instead.");
+      }
+      
+      // Proceed with signup if email check passed
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             name
-          }
+          },
+          emailRedirectTo: window.location.origin + '/login'
         }
       });
       
