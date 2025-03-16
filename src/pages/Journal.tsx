@@ -1,355 +1,374 @@
-
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/context/auth";
 import { useUserData } from "@/context/UserDataContext";
-import { JournalEntry as JournalEntryType } from "@/lib/types";
-import Navbar from "@/components/Navbar";
+import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
+import { format } from "date-fns";
+import { BookOpen, Calendar, Edit, Plus, Save, Trash } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { JournalEntry } from "@/lib/types";
+import { 
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Calendar as CalendarIcon, BookOpen, ChevronRight, Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function Journal() {
-  const { isAuthenticated } = useAuth();
-  const { journalEntries, updateJournalEntry } = useUserData();
-  const navigate = useNavigate();
-  
-  const [viewMode, setViewMode] = useState("list");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState("newest");
-  const [selectedEntry, setSelectedEntry] = useState<JournalEntryType | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [prayedForEdit, setPrayedForEdit] = useState("");
-  const [receivedInsightEdit, setReceivedInsightEdit] = useState("");
-  
-  // Redirect if not authenticated
-  useEffect(() => {
-    if (!isAuthenticated) {
-      navigate("/login");
-    }
-  }, [isAuthenticated, navigate]);
+  const { isAuthenticated, user } = useAuth();
+  const { journalEntries, addJournalEntry, updateJournalEntry, deleteJournalEntry } = useUserData();
+  const [activeTab, setActiveTab] = useState<string>("write");
+  const [title, setTitle] = useState<string>("");
+  const [content, setContent] = useState<string>("");
+  const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
 
-  const filteredEntries = journalEntries.filter(entry => {
-    const matchesSearch = 
-      entry.prayedFor.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      entry.receivedInsight.toLowerCase().includes(searchQuery.toLowerCase());
-      
-    const matchesDate = selectedDate 
-      ? entry.date === format(selectedDate, "yyyy-MM-dd")
-      : true;
-      
-    return matchesSearch && matchesDate;
-  });
-  
-  const sortedEntries = [...filteredEntries].sort((a, b) => {
-    const dateA = new Date(a.date).getTime();
-    const dateB = new Date(b.date).getTime();
-    
-    return sortBy === "newest" ? dateB - dateA : dateA - dateB;
-  });
-  
-  const handleEntryClick = (entry: JournalEntryType) => {
+  // Reset form when switching to write tab
+  useEffect(() => {
+    if (activeTab === "write" && !isEditing) {
+      setTitle("");
+      setContent("");
+      setSelectedEntry(null);
+    }
+  }, [activeTab, isEditing]);
+
+  const handleSubmit = () => {
+    if (!title.trim() || !content.trim()) {
+      toast.error("Please provide both a title and content for your journal entry");
+      return;
+    }
+
+    if (isEditing && selectedEntry) {
+      updateJournalEntry({
+        ...selectedEntry,
+        title,
+        content,
+        updatedAt: new Date().toISOString(),
+      });
+      toast.success("Journal entry updated successfully");
+      setIsEditing(false);
+    } else {
+      addJournalEntry({
+        id: Date.now().toString(),
+        title,
+        content,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+      toast.success("Journal entry saved successfully");
+    }
+
+    setTitle("");
+    setContent("");
+    setSelectedEntry(null);
+    setActiveTab("entries");
+  };
+
+  const handleEdit = (entry: JournalEntry) => {
+    setTitle(entry.title);
+    setContent(entry.content);
     setSelectedEntry(entry);
-    setPrayedForEdit(entry.prayedFor);
-    setReceivedInsightEdit(entry.receivedInsight);
+    setIsEditing(true);
+    setActiveTab("write");
+  };
+
+  const handleDelete = (entryId: string) => {
+    deleteJournalEntry(entryId);
+    toast.success("Journal entry deleted successfully");
+    
+    if (selectedEntry?.id === entryId) {
+      setSelectedEntry(null);
+    }
+  };
+
+  const handleViewEntry = (entry: JournalEntry) => {
+    setSelectedEntry(entry);
     setIsDialogOpen(true);
   };
-  
-  const handleSaveEdit = () => {
-    if (selectedEntry) {
-      updateJournalEntry(selectedEntry.id, prayedForEdit, receivedInsightEdit);
-      setIsDialogOpen(false);
-    }
-  };
-  
-  const resetFilters = () => {
-    setSearchQuery("");
-    setSelectedDate(undefined);
-    setSortBy("newest");
-  };
 
-  const getDateWithEntries = () => {
-    return journalEntries
-      .map(entry => new Date(entry.date))
-      .filter(date => !isNaN(date.getTime()));
+  const handleCancelEdit = () => {
+    setTitle("");
+    setContent("");
+    setSelectedEntry(null);
+    setIsEditing(false);
   };
-
-  if (!isAuthenticated) {
-    return null; // Will redirect via the useEffect
-  }
 
   return (
-    <>
-      <Navbar />
-      <main className="container max-w-5xl mx-auto px-4 pt-24 pb-16">
-        <div className="space-y-6 animate-fade-in">
-          <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight mb-1">Journal</h1>
-              <p className="text-muted-foreground">
-                Record and review your spiritual journey
-              </p>
-            </div>
-            <Button onClick={() => navigate("/dashboard")}>
-              Write Today's Entry
-              <ChevronRight className="ml-2 h-4 w-4" />
-            </Button>
-          </header>
-
-          <Card>
-            <CardHeader>
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                  <CardTitle>Your Journal Entries</CardTitle>
+    <Layout>
+      <div className="container max-w-6xl py-8">
+        <div className="flex flex-col space-y-4">
+          <div className="flex flex-col space-y-2">
+            <h1 className="text-3xl font-bold tracking-tight">Journal</h1>
+            <p className="text-muted-foreground">
+              Record your thoughts, prayers, and spiritual insights
+            </p>
+          </div>
+          
+          <Separator className="my-4" />
+          
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-8">
+              <TabsTrigger value="write" className="flex items-center gap-2">
+                <Edit className="h-4 w-4" />
+                {isEditing ? "Edit Entry" : "Write"}
+              </TabsTrigger>
+              <TabsTrigger value="entries" className="flex items-center gap-2">
+                <BookOpen className="h-4 w-4" />
+                My Entries
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="write" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>{isEditing ? "Edit Journal Entry" : "New Journal Entry"}</CardTitle>
                   <CardDescription>
-                    {journalEntries.length === 0
-                      ? "Start journaling to see your entries here"
-                      : `You have ${journalEntries.length} journal ${journalEntries.length === 1 ? "entry" : "entries"}`}
+                    {isEditing 
+                      ? "Update your existing journal entry below" 
+                      : "Write down your thoughts, prayers, or reflections"}
                   </CardDescription>
-                </div>
-                <Tabs value={viewMode} onValueChange={setViewMode}>
-                  <TabsList>
-                    <TabsTrigger value="list">List View</TabsTrigger>
-                    <TabsTrigger value="calendar">Calendar View</TabsTrigger>
-                  </TabsList>
-                </Tabs>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <div className="flex flex-col md:flex-row gap-4">
-                  <div className="flex-1">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Search journal entries..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10"
-                      />
-                    </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="title">Title</Label>
+                    <Input 
+                      id="title" 
+                      placeholder="Enter a title for your entry" 
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                    />
                   </div>
-                  <Select value={sortBy} onValueChange={setSortBy}>
-                    <SelectTrigger className="w-full md:w-40">
-                      <SelectValue placeholder="Sort by" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="newest">Newest First</SelectItem>
-                      <SelectItem value="oldest">Oldest First</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {(searchQuery || selectedDate || sortBy !== "newest") && (
-                    <Button variant="outline" onClick={resetFilters} className="whitespace-nowrap">
-                      Clear Filters
+                  <div className="space-y-2">
+                    <Label htmlFor="content">Content</Label>
+                    <Textarea 
+                      id="content" 
+                      placeholder="Write your journal entry here..." 
+                      className="min-h-[200px]"
+                      value={content}
+                      onChange={(e) => setContent(e.target.value)}
+                    />
+                  </div>
+                </CardContent>
+                <CardFooter className="flex justify-between">
+                  {isEditing ? (
+                    <>
+                      <Button variant="outline" onClick={handleCancelEdit}>
+                        Cancel
+                      </Button>
+                      <Button onClick={handleSubmit}>
+                        <Save className="mr-2 h-4 w-4" />
+                        Update Entry
+                      </Button>
+                    </>
+                  ) : (
+                    <Button onClick={handleSubmit} className="ml-auto">
+                      <Save className="mr-2 h-4 w-4" />
+                      Save Entry
                     </Button>
                   )}
-                </div>
-
-                {viewMode === "list" && (
-                  <div className="space-y-4">
-                    {sortedEntries.length > 0 ? (
-                      sortedEntries.map((entry) => (
-                        <Card
-                          key={entry.id}
-                          className="cursor-pointer transition-all duration-300 hover:shadow-md"
-                          onClick={() => handleEntryClick(entry)}
-                        >
-                          <CardHeader className="pb-2">
-                            <div className="flex justify-between items-center">
-                              <div className="flex items-center">
-                                <CalendarIcon className="h-4 w-4 mr-2 text-muted-foreground" />
-                                <CardTitle className="text-lg">
-                                  {new Date(entry.date).toLocaleDateString(undefined, {
-                                    weekday: "long",
-                                    year: "numeric",
-                                    month: "long",
-                                    day: "numeric",
-                                  })}
-                                </CardTitle>
+                </CardFooter>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="entries">
+              <div className="space-y-6">
+                {journalEntries.length === 0 ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>No Journal Entries Yet</CardTitle>
+                      <CardDescription>
+                        Start writing your first journal entry to see it here
+                      </CardDescription>
+                    </CardHeader>
+                    <CardFooter>
+                      <Button onClick={() => setActiveTab("write")}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Create Your First Entry
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ) : (
+                  <>
+                    <div className="flex justify-between items-center">
+                      <h2 className="text-xl font-semibold">Your Journal Entries</h2>
+                      <Button onClick={() => setActiveTab("write")}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        New Entry
+                      </Button>
+                    </div>
+                    
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      {[...journalEntries]
+                        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                        .map((entry) => (
+                          <Card key={entry.id} className="overflow-hidden">
+                            <CardHeader className="pb-3">
+                              <CardTitle className="text-lg font-semibold truncate">
+                                {entry.title}
+                              </CardTitle>
+                              <CardDescription className="flex items-center text-xs">
+                                <Calendar className="mr-1 h-3 w-3" />
+                                {format(new Date(entry.createdAt), "MMM d, yyyy")}
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent className="pb-3">
+                              <p className="text-sm line-clamp-3">
+                                {entry.content}
+                              </p>
+                            </CardContent>
+                            <CardFooter className="flex justify-between pt-0">
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => handleViewEntry(entry)}
+                              >
+                                Read
+                              </Button>
+                              <div className="flex gap-2">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => handleEdit(entry)}
+                                >
+                                  Edit
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm"
+                                      className="text-destructive"
+                                    >
+                                      Delete
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete Journal Entry</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to delete this journal entry? This action cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction 
+                                        onClick={() => handleDelete(entry.id)}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      >
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
                               </div>
-                              {entry.isCheckedIn && (
-                                <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                                  Checked In
-                                </div>
-                              )}
-                            </div>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="space-y-2">
-                              {entry.prayedFor && (
-                                <div>
-                                  <p className="text-sm font-medium">I prayed for:</p>
-                                  <p className="text-sm text-muted-foreground line-clamp-2">
-                                    {entry.prayedFor}
-                                  </p>
-                                </div>
-                              )}
-                              {entry.receivedInsight && (
-                                <div>
-                                  <p className="text-sm font-medium">I received:</p>
-                                  <p className="text-sm text-muted-foreground line-clamp-2">
-                                    {entry.receivedInsight}
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))
-                    ) : (
-                      <div className="flex flex-col items-center justify-center py-12 text-center">
-                        <BookOpen className="h-12 w-12 text-muted-foreground mb-4 opacity-40" />
-                        <p className="text-lg font-medium">No journal entries found</p>
-                        <p className="text-muted-foreground">
-                          {searchQuery || selectedDate
-                            ? "Try adjusting your search or filters"
-                            : "Start writing your first journal entry"}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {viewMode === "calendar" && (
-                  <div className="flex flex-col md:flex-row gap-6">
-                    <div className="md:w-1/2">
-                      <Calendar
-                        mode="single"
-                        selected={selectedDate}
-                        onSelect={setSelectedDate}
-                        className="rounded-md border shadow"
-                        modifiers={{
-                          hasEntry: getDateWithEntries(),
-                        }}
-                        modifiersStyles={{
-                          hasEntry: {
-                            fontWeight: 'bold',
-                            border: '2px solid var(--color-primary)',
-                            backgroundColor: 'hsl(var(--primary) / 0.1)',
-                          },
-                        }}
-                      />
+                            </CardFooter>
+                          </Card>
+                        ))}
                     </div>
-                    <div className="md:w-1/2">
-                      <h3 className="text-lg font-medium mb-4">
-                        {selectedDate ? (
-                          <>Entries for {format(selectedDate, "MMMM d, yyyy")}</>
-                        ) : (
-                          <>Select a date to view entries</>
-                        )}
-                      </h3>
-                      <div className="space-y-4">
-                        {sortedEntries.length > 0 ? (
-                          sortedEntries.map((entry) => (
-                            <Card
-                              key={entry.id}
-                              className="cursor-pointer transition-all duration-300 hover:shadow-md"
-                              onClick={() => handleEntryClick(entry)}
-                            >
-                              <CardContent className="p-4">
-                                <div className="space-y-2">
-                                  {entry.prayedFor && (
-                                    <div>
-                                      <p className="text-sm font-medium">I prayed for:</p>
-                                      <p className="text-sm text-muted-foreground line-clamp-2">
-                                        {entry.prayedFor}
-                                      </p>
-                                    </div>
-                                  )}
-                                  {entry.receivedInsight && (
-                                    <div>
-                                      <p className="text-sm font-medium">I received:</p>
-                                      <p className="text-sm text-muted-foreground line-clamp-2">
-                                        {entry.receivedInsight}
-                                      </p>
-                                    </div>
-                                  )}
-                                </div>
-                              </CardContent>
-                            </Card>
-                          ))
-                        ) : (
-                          <div className="flex flex-col items-center justify-center py-8 text-center">
-                            <p className="text-muted-foreground">
-                              {selectedDate
-                                ? "No entries for this date"
-                                : "Select a date to view entries"}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                  </>
                 )}
               </div>
-            </CardContent>
-          </Card>
+            </TabsContent>
+          </Tabs>
         </div>
-      </main>
-
+      </div>
+      
+      {/* Journal Entry View Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh]">
           <DialogHeader>
-            <DialogTitle>
-              {selectedEntry && format(new Date(selectedEntry.date), "MMMM d, yyyy")}
-            </DialogTitle>
-            <DialogDescription>View and edit your journal entry</DialogDescription>
+            <DialogTitle>{selectedEntry?.title}</DialogTitle>
+            <DialogDescription className="flex items-center text-xs">
+              <Calendar className="mr-1 h-3 w-3" />
+              {selectedEntry && format(new Date(selectedEntry.createdAt), "MMMM d, yyyy 'at' h:mm a")}
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="prayedForEdit">What I prayed for</Label>
-              <Textarea
-                id="prayedForEdit"
-                value={prayedForEdit}
-                onChange={(e) => setPrayedForEdit(e.target.value)}
-                className="min-h-[100px]"
-              />
+          <ScrollArea className="max-h-[50vh]">
+            <div className="p-4 whitespace-pre-wrap">
+              {selectedEntry?.content}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="receivedInsightEdit">What I received from God</Label>
-              <Textarea
-                id="receivedInsightEdit"
-                value={receivedInsightEdit}
-                onChange={(e) => setReceivedInsightEdit(e.target.value)}
-                className="min-h-[150px]"
-              />
+          </ScrollArea>
+          <DialogFooter className="flex justify-between sm:justify-between">
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  setIsDialogOpen(false);
+                  if (selectedEntry) {
+                    handleEdit(selectedEntry);
+                  }
+                }}
+              >
+                <Edit className="mr-2 h-4 w-4" />
+                Edit
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="text-destructive border-destructive"
+                  >
+                    <Trash className="mr-2 h-4 w-4" />
+                    Delete
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Journal Entry</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete this journal entry? This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={() => {
+                        if (selectedEntry) {
+                          handleDelete(selectedEntry.id);
+                          setIsDialogOpen(false);
+                        }
+                      }}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
-          </div>
-          <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-              Cancel
+            <Button 
+              variant="default" 
+              onClick={() => setIsDialogOpen(false)}
+            >
+              Close
             </Button>
-            <Button onClick={handleSaveEdit}>Save Changes</Button>
-          </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </Layout>
   );
 }
