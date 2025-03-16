@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useEffect } from "react";
 import { JournalEntry, Streak, UserData } from "@/lib/types";
-import { useAuth } from "./auth";
+import { useAuth } from "./AuthContext";
 import { useJournalEntries } from "@/hooks/useJournalEntries";
 import { useStreak, DEFAULT_STREAK } from "@/hooks/useStreak";
 import { useCheckIn } from "@/hooks/useCheckIn";
