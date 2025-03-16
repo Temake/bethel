@@ -33,7 +33,6 @@ export default function Login() {
     // Check for email-exists parameter
     if (params.get("email-exists") === "true") {
       setShowConfirmationMessage(true);
-      setConfirmationMessage("This email is already registered. Please log in instead.");
       setActiveTab("login");
     }
   }, [location]);
