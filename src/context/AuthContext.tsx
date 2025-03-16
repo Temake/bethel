@@ -11,7 +11,7 @@ type AuthContextType = {
   isLoading: boolean;
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
-  signup: (name: string, email: string, password: string) => Promise<void>;
+  signup: (name: string, email: string, password: string) => Promise<{ isNewAccount: boolean } | null>;
   logout: () => void;
 };
 
@@ -141,11 +141,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setError(null);
     
     try {
-      // First, check if the email already exists
-      const { data: existingUser, error: existingUserError } = await supabase
+      // First, check if the email already exists using profiles table
+      const { data: existingProfile } = await supabase
         .from('profiles')
         .select('id')
-        .eq('email', email)
+        .eq('id', email)
         .maybeSingle();
       
       // Also check auth.users using a sign-in attempt (this is more reliable)
@@ -159,13 +159,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // or if we found a user in the profiles table
       const userExists = !signInError || 
                          (signInError.message && signInError.message.includes('Invalid login credentials')) ||
-                         existingUser;
+                         existingProfile;
       
       if (userExists) {
         setError("This email is already registered. Please log in instead.");
         toast.error("This email is already registered. Please log in instead.");
-        navigate('/login'); // Redirect to login page
-        return;
+        navigate('/login?email-exists=true');
+        return null;
       }
       
       // If email doesn't exist, proceed with signup
@@ -186,12 +186,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       
       if (data.user) {
         toast.success("Account created! Please check your email for verification.");
-        navigate('/login');
+        return { isNewAccount: true };
       }
+      
+      return null;
     } catch (err: any) {
       console.error('Signup error:', err);
       setError(err.message);
       toast.error(err.message || "Failed to create account");
+      return null;
     } finally {
       setIsLoading(false);
     }
