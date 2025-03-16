@@ -43,7 +43,7 @@ const Navbar = () => {
         <Link to="/" className="flex items-center space-x-2 transition-all duration-300 hover:opacity-80">
           <div className="font-display text-xl font-semibold flex items-center">
             <span className="bg-primary text-primary-foreground py-1 px-2 rounded mr-1">Bethel</span>
-            <span>Tracker</span>
+            
           </div>
         </Link>
 

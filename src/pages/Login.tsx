@@ -91,7 +91,7 @@ export default function Login() {
       <Card className="w-full max-w-md mx-auto rounded-xl shadow-lg animate-scale-in border">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-semibold tracking-tight text-center">
-            Welcome to Soul Tracker
+            Welcome to Bethel
           </CardTitle>
           <CardDescription className="text-center">
             Track your spiritual journey and maintain consistency
@@ -216,9 +216,7 @@ export default function Login() {
           </Tabs>
         </CardContent>
         <CardFooter className="flex flex-col items-center">
-          <p className="text-center text-sm text-muted-foreground mt-2">
-            By continuing, you agree to our Terms of Service and Privacy Policy.
-          </p>
+          
         </CardFooter>
       </Card>
     </div>
