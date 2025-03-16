@@ -1,25 +1,12 @@
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { User } from "@/lib/types";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { AuthContextType } from "./types";
 
-type AuthContextType = {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  error: string | null;
-  login: (email: string, password: string) => Promise<void>;
-  signup: (name: string, email: string, password: string) => Promise<{ isNewAccount: boolean } | null>;
-  logout: () => void;
-};
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
-  children
-}) => {
+export function useAuthProvider(): AuthContextType {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -220,27 +207,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  return (
-    <AuthContext.Provider
-      value={{
-        isAuthenticated,
-        user,
-        isLoading,
-        error,
-        login,
-        signup,
-        logout
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
-};
+  return {
+    isAuthenticated,
+    user,
+    isLoading,
+    error,
+    login,
+    signup,
+    logout
+  };
+}
