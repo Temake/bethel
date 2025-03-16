@@ -1,12 +1,25 @@
 
-import { useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { User } from "@/lib/types";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { AuthContextType } from "./types";
 
-export function useAuthProvider(): AuthContextType {
+type AuthContextType = {
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  error: string | null;
+  login: (email: string, password: string) => Promise<void>;
+  signup: (name: string, email: string, password: string) => Promise<{ isNewAccount: boolean } | null>;
+  logout: () => void;
+};
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children
+}) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -150,7 +163,6 @@ export function useAuthProvider(): AuthContextType {
       
       if (userExists) {
         setError("This email is already registered. Please log in instead.");
-        toast.error("This email is already registered. Please log in instead.");
         navigate('/login?email-exists=true');
         return null;
       }
@@ -207,13 +219,25 @@ export function useAuthProvider(): AuthContextType {
     }
   };
 
-  return {
-    isAuthenticated,
-    user,
-    isLoading,
-    error,
-    login,
-    signup,
-    logout
-  };
-}
+  return (
+    <AuthContext.Provider value={{
+      isAuthenticated,
+      user,
+      isLoading,
+      error,
+      login,
+      signup,
+      logout
+    }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+};
