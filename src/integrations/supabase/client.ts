@@ -8,8 +8,9 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // Get the current URL of the application
 const getRedirectURL = () => {
+  // In production, use the current origin
   // In development, use localhost:5173 (or your dev server)
-  return 'https://streak-soul-tracker.vercel.app' + '/login';
+  return window.location.origin + '/login';
 };
 
 // Import the supabase client like this:
@@ -23,7 +24,6 @@ export const supabase = createClient<Database>(
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
-      redirectTo: getRedirectURL(),
       flowType: 'pkce',
     }
   }
