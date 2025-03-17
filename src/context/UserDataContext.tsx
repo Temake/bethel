@@ -60,7 +60,7 @@ export const UserDataProvider: React.FC<{ children: React.ReactNode }> = ({
           .eq('user_id', user.id)
           .maybeSingle();
         
-        if (error && error.code !== 'PGRST116') {
+        if (error) {
           console.error("Error fetching streak data:", error);
           return;
         }

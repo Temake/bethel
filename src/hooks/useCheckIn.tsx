@@ -23,7 +23,7 @@ export function useCheckIn(
       try {
         const { data, error } = await supabase
           .from('check_ins')
-          .select('*')
+          .select()
           .eq('user_id', userId)
           .eq('check_in_date', today);
         
@@ -49,7 +49,7 @@ export function useCheckIn(
     try {
       const { data, error } = await supabase
         .from('check_ins')
-        .select('*')
+        .select()
         .eq('user_id', userId)
         .eq('check_in_date', today);
       
@@ -109,7 +109,7 @@ export function useCheckIn(
             prayed_for: '',
             received_insight: ''
           })
-          .select('*')
+          .select()
           .single();
         
         if (error) throw error;
