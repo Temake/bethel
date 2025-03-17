@@ -141,31 +141,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setError(null);
 
     try {
-        // Check if the email already exists
-        const { error: checkError } = await supabase
-            .rpc('check_email_exists', { email_to_check: email });
+        // Check if the email already exists by trying to sign in with it
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+            email,
+            password: "dummy-check-password-that-wont-match"
+        });
 
-        if (checkError) {
-            console.error("Error checking if email exists:", checkError);
-        } else {
-            // Use email checking logic without trying to query profiles directly
-            const { error: signInError } = await supabase.auth.signInWithPassword({
-                email,
-                password: "dummy-check-password"
-            });
+        // If there is no error or the error is about invalid credentials,
+        // it means the email exists in the system
+        const userExists = signInError && 
+            signInError.message.includes('Invalid login credentials') ? true : false;
 
-            const userExists = !signInError || 
-                (signInError.message && signInError.message.includes('Invalid login credentials'));
-
-            if (userExists) {
-                setError("This email is already registered. Please log in instead.");
-                toast.error("This email is already registered. Please log in instead.");
-                navigate("/login?email-exists=true");
-                return null;
-            }
+        if (userExists) {
+            setError("This email is already registered. Please log in instead.");
+            toast.error("This email is already registered. Please log in instead.");
+            navigate("/login?email-exists=true");
+            return null;
         }
 
-        // Now, proceed with creating the user
+        // If email doesn't exist, proceed with creating the user
         const { data, error } = await supabase.auth.signUp({
             email,
             password,

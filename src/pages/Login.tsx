@@ -9,10 +9,11 @@ import { SignupForm, SignupFormValues } from "@/components/auth/SignupForm";
 import { AuthAlert } from "@/components/auth/AuthAlert";
 
 export default function Login() {
-  const { login,  signup, isAuthenticated, error } = useAuth();
+  const { login, signup, isAuthenticated, error } = useAuth();
   const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
   const [showConfirmationMessage, setShowConfirmationMessage] = useState(false);
-  const [confirmationMessage, setConfirmationMessage] = useState("Check your email for a confirmation link. You'll need to confirm your email before you can log in.");
+  const [confirmationMessage, setConfirmationMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -31,13 +32,6 @@ export default function Login() {
     // Check for email confirmation in URL
     if (location.hash.includes('type=signup') || location.hash.includes('type=recovery')) {
       setShowConfirmationMessage(false);
-      setConfirmationMessage("Please check your email for a confirmation link. You'll need to confirm your email before you can log in.");
-      setActiveTab("login");
-    }
-    
-    // Check for email-exists parameter
-    if (params.get("email-exists") === "true") {
-      setShowConfirmationMessage(true);
       setActiveTab("login");
     }
   }, [location]);
@@ -50,28 +44,27 @@ export default function Login() {
   }, [isAuthenticated, navigate]);
 
   const onLoginSubmit = async (data: LoginFormValues) => {
+    setIsSubmitting(true);
     await login(data.email, data.password);
+    setIsSubmitting(false);
   };
 
   const onSignupSubmit = async (data: SignupFormValues) => {
+    setIsSubmitting(true);
     const result = await signup(data.name, data.email, data.password);
+    setIsSubmitting(false);
 
     if (result === null) {
-       setShowConfirmationMessage(false);
-       setConfirmationMessage("User already exists. Please log in instead.");
-       navigate("/login?email-exists=true");
-       return null;
-       
+      // The signup function already handles the error messaging and navigation
+      return null;
     }
 
     if (result.isNewAccount) {
-        setShowConfirmationMessage(true);
-        setConfirmationMessage("Please check your email for a confirmation link. You'll need to confirm your email before you can log in.");
-        setActiveTab("login");
+      setShowConfirmationMessage(true);
+      setConfirmationMessage("Please check your email for a confirmation link. You'll need to confirm your email before you can log in.");
+      setActiveTab("login");
     }
-};
-
-//TODO: Add a loading state to the login and signup buttons
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-24">
@@ -109,14 +102,14 @@ export default function Login() {
             <TabsContent value="login" className="space-y-4">
               <LoginForm 
                 onSubmit={onLoginSubmit} 
-                isSubmitting={false}
+                isSubmitting={isSubmitting}
               />
             </TabsContent>
             
             <TabsContent value="signup" className="space-y-4">
               <SignupForm 
                 onSubmit={onSignupSubmit} 
-                isSubmitting={false}
+                isSubmitting={isSubmitting}
               />
             </TabsContent>
           </Tabs>
