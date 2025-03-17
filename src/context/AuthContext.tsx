@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { User } from "@/lib/types";
@@ -141,25 +140,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setError(null);
 
     try {
-        // Check if the email already exists by trying to sign in with it
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-            email,
-            password: "dummy-check-password-that-wont-match"
-        });
-
-        // If there is no error or the error is about invalid credentials,
-        // it means the email exists in the system
-        const userExists = signInError && 
-            signInError.message.includes('Invalid login credentials') ? true : false;
-
-        if (userExists) {
-            setError("This email is already registered. Please log in instead.");
-            toast.error("This email is already registered. Please log in instead.");
-            navigate("/login?email-exists=true");
-            return null;
-        }
-
-        // If email doesn't exist, proceed with creating the user
+        // First attempt to sign up the user
         const { data, error } = await supabase.auth.signUp({
             email,
             password,
@@ -167,10 +148,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         });
 
         if (error) {
+            // If the error indicates the user already exists
+            if (error.message.includes('User already registered')) {
+                setError("This email is already registered. Please log in instead.");
+                toast.error("This email is already registered. Please log in instead.");
+                navigate("/login?email-exists=true");
+                return null;
+            }
             throw error;
         }
 
         if (data?.user) {
+            toast.success("Please check your email for a confirmation link to complete your registration.");
             return { isNewAccount: true };
         }
 
