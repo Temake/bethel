@@ -3,8 +3,8 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://ktqtyrxrdkylgftqpclo.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt0cXR5cnhyZGt5bGdmdHFwY2xvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE5NTEyNzAsImV4cCI6MjA1NzUyNzI3MH0.0oRhpAfgMebSblyDP73dEBK6zWeTlZJSp4p7tMdLimY";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // Get the current URL of the application
 const getRedirectURL = () => {
