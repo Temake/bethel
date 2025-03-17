@@ -10,7 +10,7 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const getRedirectURL = () => {
   // In production, use the current origin
   // In development, use localhost:5173 (or your dev server)
-  return window.location.origin + '/login';
+  return 'https://streak-soul-tracker.vercel.app/' + '/login';
 };
 
 // Import the supabase client like this:
