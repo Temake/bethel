@@ -15,7 +15,7 @@ export function useJournalEntries(initialEntries: JournalEntry[] = [], user: Use
       try {
         const { data, error } = await supabase
           .from('journal_entries')
-          .select('*')
+          .select()
           .eq('user_id', user.id)
           .order('entry_date', { ascending: false });
         
@@ -85,7 +85,7 @@ export function useJournalEntries(initialEntries: JournalEntry[] = [], user: Use
             prayed_for: prayedFor,
             received_insight: receivedInsight
           })
-          .select('*')
+          .select()
           .single();
         
         if (error) throw error;

@@ -1,9 +1,9 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { User } from "@/lib/types";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { nullable } from "zod";
 
 type AuthContextType = {
   user: User | null;
@@ -136,35 +136,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  
   const signup = async (name: string, email: string, password: string) => {
     setIsLoading(true);
     setError(null);
 
     try {
-        // 🔹 1️⃣ Check if the email already exists in Supabase auth.users
-        const { data: existingUsers, error: checkError,error: signInError } = await supabase
-            .from("profiles") // Replace "profiles" with your actual user table if different
-            .select("id")
-            .eq("email", email)
-            .maybeSingle();
-
-            const userExists = !signInError || 
-                         (signInError.message && signInError.message.includes('Invalid login credentials')) ||
-                         existingUsers;
+        // Check if the email already exists
+        const { error: checkError } = await supabase
+            .rpc('check_email_exists', { email_to_check: email });
 
         if (checkError) {
-            return null;
+            console.error("Error checking if email exists:", checkError);
+        } else {
+            // Use email checking logic without trying to query profiles directly
+            const { error: signInError } = await supabase.auth.signInWithPassword({
+                email,
+                password: "dummy-check-password"
+            });
+
+            const userExists = !signInError || 
+                (signInError.message && signInError.message.includes('Invalid login credentials'));
+
+            if (userExists) {
+                setError("This email is already registered. Please log in instead.");
+                toast.error("This email is already registered. Please log in instead.");
+                navigate("/login?email-exists=true");
+                return null;
+            }
         }
 
-        if (existingUsers || userExists) {
-            setError("This email is already registered. Please log in instead.");
-            toast.error("This email is already registered. Please log in instead.");
-            navigate("/login?email-exists=true");
-            return null;
-        }
-
-        // 🔹 2️⃣ Now, proceed with creating the user
+        // Now, proceed with creating the user
         const { data, error } = await supabase.auth.signUp({
             email,
             password,
@@ -189,7 +190,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         setIsLoading(false);
     }
 };
-
 
   const logout = async () => {
     setIsLoading(true);
