@@ -1,9 +1,9 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { User } from "@/lib/types";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { nullable } from "zod";
 
 type AuthContextType = {
   user: User | null;
@@ -136,69 +136,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  
   const signup = async (name: string, email: string, password: string) => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
-      // First, check if the email already exists using profiles table
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', email)
-        .maybeSingle();
-      
-      // Also check auth.users using a sign-in attempt (this is more reliable)
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password: 'check-if-exists-only' // We're just checking if the email exists
-      });
-      
-      // If no error occurred during the sign-in attempt with random password, 
-      // or if we got a specific error about wrong credentials (means user exists)
-      // or if we found a user in the profiles table
-      const userExists = !signInError || 
+        // 🔹 1️⃣ Check if the email already exists in Supabase auth.users
+        const { data: existingUsers, error: checkError,error: signInError } = await supabase
+            .from("profiles") // Replace "profiles" with your actual user table if different
+            .select("id")
+            .eq("email", email)
+            .maybeSingle();
+
+            const userExists = !signInError || 
                          (signInError.message && signInError.message.includes('Invalid login credentials')) ||
-                         existingProfile;
-      
-      if (userExists) {
-        setError("This email is already registered. Please log in instead.");
-        toast.error("This email is already registered. Please log in instead.");
-        navigate('/login?email-exists=true');
-        return null;
-      }
-      
-      // If email doesn't exist, proceed with signup
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            name
-          },
-          emailRedirectTo: window.location.origin + '/login'
+                         existingUsers;
+
+        if (checkError) {
+            return null;
         }
-      });
-      
-      if (error) {
-        throw error;
-      }
-      
-      if (data.user) {
-        toast.success("Account created! Please check your email for verification.");
-        return { isNewAccount: true };
-      }
-      
-      return null;
+
+        if (existingUsers || userExists) {
+            setError("This email is already registered. Please log in instead.");
+            toast.error("This email is already registered. Please log in instead.");
+            navigate("/login?email-exists=true");
+            return null;
+        }
+
+        // 🔹 2️⃣ Now, proceed with creating the user
+        const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: { data: { name } },
+        });
+
+        if (error) {
+            throw error;
+        }
+
+        if (data?.user) {
+            return { isNewAccount: true };
+        }
+
+        return null;
     } catch (err: any) {
-      console.error('Signup error:', err);
-      setError(err.message);
-      toast.error(err.message || "Failed to create account");
-      return null;
+        console.error("Signup error:", err);
+        setError(err?.message || "An unexpected error occurred");
+        toast.error(err?.message || "Failed to sign up");
+        return null;
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
-  };
+};
+
 
   const logout = async () => {
     setIsLoading(true);
